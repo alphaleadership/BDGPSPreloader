@@ -1,0 +1,16 @@
+# Fichiers de build compilés
+bin/
+obj/
+*.dll
+
+# Fichiers de dépendances locaux téléchargés
+bdarmory.zip
+bdarmory/
+/GameData/
+
+# Fichiers utilisateur locaux
+/PluginData/
+*.xml
+*.suo
+*.user
+.vs/
