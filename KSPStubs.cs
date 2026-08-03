@@ -69,7 +69,7 @@ namespace UnityEngine
     {
         public delegate void WindowFunction(int id);
         public static void DragWindow(Rect r) {}
-        public static object skin => new GUISkin();
+        public static GUISkin skin => new GUISkin();
     }
     
     public class GUISkin
