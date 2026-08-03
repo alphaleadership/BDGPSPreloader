@@ -8,8 +8,9 @@
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <!-- Note: Vous devrez adapter les chemins des DLLs de référence vers votre propre dossier d'installation de KSP -->
-  <ItemGroup>
+  <!-- Build local : utilise les DLLs locales de KSP si KSP_DIR est défini -->
+  <ItemGroup Condition="'$(KSP_DIR)' != ''">
+    <Compile Remove="KSPStubs.cs" />
     <Reference Include="Assembly-CSharp">
       <HintPath>$(KSP_DIR)\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>false</Private>
@@ -34,5 +35,10 @@
       <HintPath>$(KSP_DIR)\KSP_x64_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+  </ItemGroup>
+
+  <!-- Build GitHub Actions CI / Fallback : compilation sans dépendances via stubs -->
+  <ItemGroup Condition="'$(KSP_DIR)' == ''">
+    <!-- Compilation par défaut de KSPStubs.cs si aucun KSP_DIR n'est fourni -->
   </ItemGroup>
 </Project>
