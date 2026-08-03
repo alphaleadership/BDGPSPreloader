@@ -1,6 +1,6 @@
-# Stubs pour compiler BDGPSPreloader dans l'intégration continue de GitHub Actions.
-# Ces classes fournissent des définitions minimales des types KSP pour permettre la compilation
-# sans avoir à embarquer les DLLs propriétaires de Squad (KSP) sur GitHub.
+// Stubs pour compiler BDGPSPreloader dans l'intégration continue de GitHub Actions.
+// Ces classes fournissent des définitions minimales des types KSP pour permettre la compilation
+// sans avoir à embarquer les DLLs propriétaires de Squad (KSP) sur GitHub.
 
 namespace UnityEngine
 {
