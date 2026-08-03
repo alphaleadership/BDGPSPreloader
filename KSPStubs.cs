@@ -48,6 +48,44 @@ namespace UnityEngine
         public static Sprite Create(Texture2D t, Rect r, Vector2 pivot) => null;
     }
     
+    public class Transform
+    {
+        public Vector3 position { get; set; }
+        public Vector3 forward => new Vector3();
+        public Vector3 up => new Vector3();
+        public void LookAt(Vector3 target) {}
+    }
+
+    public class GameObject
+    {
+        public Transform transform => null;
+        public GameObject(string name) {}
+        public T AddComponent<T>() where T : Component => null;
+    }
+
+    public class Component : MonoBehaviour {}
+
+    public class Camera : Component
+    {
+        public Rect rect { get; set; }
+        public int depth { get; set; }
+        public float fieldOfView { get; set; }
+    }
+
+    public struct Vector3
+    {
+        public float x, y, z;
+        public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
+        public static Vector3 Lerp(Vector3 a, Vector3 b, float t) => a;
+        public static float Distance(Vector3 a, Vector3 b) => 0.0f;
+    }
+
+    public static class Mathf
+    {
+        public static float Min(float a, float b) => a;
+        public static int Min(int a, int b) => a;
+    }
+
     public static class GUILayout
     {
         public static void BeginVertical() {}
@@ -121,6 +159,39 @@ public class GameDatabase
 {
     public static GameDatabase Instance => null;
     public UnityEngine.Texture2D GetTexture(string name, bool b) => null;
+}
+
+public class Part
+{
+    public System.Collections.Generic.List<PartModule> Modules = new System.Collections.Generic.List<PartModule>();
+}
+
+public class PartModule
+{
+    public Part part => null;
+    public Vessel vessel => null;
+}
+
+public class Vessel
+{
+    public string vesselName => "";
+    public UnityEngine.Transform transform => null;
+    public CelestialBody mainBody => null;
+    public bool packed => false;
+    public bool loaded => false;
+    public System.Collections.Generic.List<Part> parts = new System.Collections.Generic.List<Part>();
+}
+
+public class CelestialBody
+{
+    public Vector3d GetLatitudeAndLongitude(UnityEngine.Vector3 position) => new Vector3d();
+    public double GetAltitude(UnityEngine.Vector3 position) => 0.0;
+}
+
+public static class FlightGlobals
+{
+    public static Vessel ActiveVessel => null;
+    public static System.Collections.Generic.List<Vessel> Vessels = new System.Collections.Generic.List<Vessel>();
 }
 
 public class ScreenMessageStyle
