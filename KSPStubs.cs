@@ -184,7 +184,7 @@ public class Vessel
 
 public class CelestialBody
 {
-    public Vector3d GetLatitudeAndLongitude(UnityEngine.Vector3 position) => new Vector3d();
+    public UnityEngine.Vector3d GetLatitudeAndLongitude(UnityEngine.Vector3 position) => new UnityEngine.Vector3d();
     public double GetAltitude(UnityEngine.Vector3 position) => 0.0;
 }
 
