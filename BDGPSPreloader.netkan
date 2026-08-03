@@ -1,0 +1,31 @@
+{
+    "spec_version": "v1.18",
+    "identifier": "BDGPSPreloader",
+    "name": "BDArmory GPS Preloader",
+    "abstract": "Permet de saisir et d'enregistrer des coordonnées GPS à l'avance pour les injecter directement dans le système de ciblage de BDArmory.",
+    "author": "alpha",
+    "version": "1.0.0",
+    "ksp_version_min": "1.12.0",
+    "ksp_version_max": "1.12.99",
+    "license": "MIT",
+    "resources": {
+        "homepage": "https://github.com/alpha/BDGPSPreloader",
+        "repository": "https://github.com/alpha/BDGPSPreloader"
+    },
+    "tags": [
+        "plugin",
+        "combat",
+        "convenience"
+    ],
+    "depends": [
+        {
+            "name": "BDArmory"
+        }
+    ],
+    "install": [
+        {
+            "find": "BDGPSPreloader",
+            "install_to": "GameData"
+        }
+    ]
+}
