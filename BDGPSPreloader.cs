@@ -170,35 +170,39 @@ namespace BDGPSPreloader
         {
             try
             {
-                // Utilisation de la réflexion ou de la liaison directe si BDArmory.dll est référencé
-                // BDArmory utilise BDArmory.Modules.BDATargetManager.GPSTargets pour stocker les coordonnées
-                // On va tenter d'appeler BDArmory dynamiquement via Reflection pour éviter les dépendances strictes de compilation si besoin.
-                
                 var bdAssembly = AssemblyLoader.loadedAssemblies.Find(a => a.assembly.GetName().Name == "BDArmory");
                 if (bdAssembly != null)
                 {
                     Type targetManagerType = bdAssembly.assembly.GetType("BDArmory.Modules.BDATargetManager");
                     if (targetManagerType != null)
                     {
-                        // Structure de GPSTargetInfo dans BDArmory : 
-                        // public struct GPSTargetInfo { public string name; public Vector3d gpsCoords; }
+                        // Dans BDArmory, GPSTargetInfo est instancié avec (Vector3d gpsCoordinates, string name)
                         Type gpsTargetInfoType = bdAssembly.assembly.GetType("BDArmory.Modules.GPSTargetInfo");
                         if (gpsTargetInfoType != null)
                         {
-                            object coordsVector = new Vector3d(coord.Longitude, coord.Latitude, coord.Altitude); // BDArmory stocke souvent sous forme x=lon, y=lat, z=alt
-                            object gpsTargetInfoInstance = Activator.CreateInstance(gpsTargetInfoType, new object[] { coord.Name, coordsVector });
+                            object coordsVector = new Vector3d(coord.Longitude, coord.Latitude, coord.Altitude); // x=lon, y=lat, z=alt
                             
-                            // On récupère et ajoute la cible à la liste de cibles GPS actives de BDArmory pour l'équipe (Team) active.
-                            // BDATargetManager.AddGPSTarget(GPSTargetInfo target)
-                            var addMethod = targetManagerType.GetMethod("AddGPSTarget", new Type[] { gpsTargetInfoType });
-                            if (addMethod != null)
+                            // Chercher le constructeur (Vector3d, string)
+                            var constructor = gpsTargetInfoType.GetConstructor(new Type[] { typeof(Vector3d), typeof(string) });
+                            if (constructor != null)
                             {
-                                addMethod.Invoke(null, new object[] { gpsTargetInfoInstance });
-                                ScreenMessages.PostScreenMessage($"GPS '{coord.Name}' injecté dans BDArmory !", 4f, ScreenMessageStyle.UPPER_CENTER);
+                                object gpsTargetInfoInstance = constructor.Invoke(new object[] { coordsVector, coord.Name });
+                                
+                                // BDATargetManager.AddGPSTarget(GPSTargetInfo target)
+                                var addMethod = targetManagerType.GetMethod("AddGPSTarget", new Type[] { gpsTargetInfoType });
+                                if (addMethod != null)
+                                {
+                                    addMethod.Invoke(null, new object[] { gpsTargetInfoInstance });
+                                    ScreenMessages.PostScreenMessage($"GPS '{coord.Name}' injecté dans BDArmory !", 4f, ScreenMessageStyle.UPPER_CENTER);
+                                }
+                                else
+                                {
+                                    ScreenMessages.PostScreenMessage("Erreur : Impossible de trouver la méthode AddGPSTarget dans BDArmory.", 4f, ScreenMessageStyle.UPPER_CENTER);
+                                }
                             }
                             else
                             {
-                                ScreenMessages.PostScreenMessage("Erreur : Impossible de trouver la méthode AddGPSTarget dans BDArmory.", 4f, ScreenMessageStyle.UPPER_CENTER);
+                                ScreenMessages.PostScreenMessage("Erreur : Impossible de trouver le constructeur de GPSTargetInfo.", 4f, ScreenMessageStyle.UPPER_CENTER);
                             }
                         }
                     }
