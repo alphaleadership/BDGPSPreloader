@@ -4,7 +4,10 @@
 
 namespace UnityEngine
 {
-    public class MonoBehaviour {}
+    public class MonoBehaviour
+    {
+        public static void Destroy(object obj) {}
+    }
     
     public struct Rect
     {
@@ -78,6 +81,9 @@ namespace UnityEngine
         public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
         public static Vector3 Lerp(Vector3 a, Vector3 b, float t) => a;
         public static float Distance(Vector3 a, Vector3 b) => 0.0f;
+        public static Vector3 operator *(Vector3 a, float d) => new Vector3(a.x * d, a.y * d, a.z * d);
+        public static Vector3 operator -(Vector3 a, Vector3 b) => new Vector3(a.x - b.x, a.y - b.y, a.z - b.z);
+        public static Vector3 operator +(Vector3 a, Vector3 b) => new Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
     }
 
     public static class Mathf
@@ -95,6 +101,7 @@ namespace UnityEngine
         public static void Label(string text, object style = null, params object[] options) {}
         public static string TextField(string text, params object[] options) => text;
         public static bool Button(string text, params object[] options) => false;
+        public static bool Toggle(bool value, string text, params object[] options) => value;
         public static void Space(float size) {}
         public static Vector2 BeginScrollView(Vector2 scroll, params object[] options) => scroll;
         public static void EndScrollView() {}
