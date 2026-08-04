@@ -33,8 +33,10 @@ jobs:
       run: |
         mkdir -p release/GameData/BDGPSPreloader/Plugins
         mkdir -p release/GameData/BDGPSPreloader/Parts
+        mkdir -p release/GameData/BDGPSPreloader/MMPatches
         cp bin/Release/net472/BDGPSPreloader.dll release/GameData/BDGPSPreloader/Plugins/
         cp -r GameData/BDGPSPreloader/Parts/* release/GameData/BDGPSPreloader/Parts/
+        cp -r GameData/BDGPSPreloader/MMPatches/* release/GameData/BDGPSPreloader/MMPatches/
         cd release
         zip -r ../BDGPSPreloader.zip GameData/
 
