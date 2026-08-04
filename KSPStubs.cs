@@ -1,6 +1,6 @@
 // Stubs pour compiler BDGPSPreloader dans l'intégration continue de GitHub Actions.
-// Ces classes fournissent des définitions minimales des types KSP pour permettre la compilation
-// sans avoir à embarquer les DLLs propriétaires de Squad (KSP) sur GitHub.
+// Ces classes fournissent des définitions minimales des types KSP + BDArmory pour permettre
+// la compilation sans avoir à embarquer les DLLs propriétaires (Squad / BDArmory) sur GitHub.
 
 namespace UnityEngine
 {
@@ -14,10 +14,7 @@ namespace UnityEngine
         public float x, y, width, height;
         public Rect(float x, float y, float width, float height)
         {
-            this.x = x;
-            this.y = y;
-            this.width = width;
-            this.height = height;
+            this.x = x; this.y = y; this.width = width; this.height = height;
         }
     }
     
@@ -31,12 +28,8 @@ namespace UnityEngine
     public struct Vector3d
     {
         public double x, y, z;
-        public Vector3d(double x, double y, double z)
-        {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
+        public Vector3d(double x, double y, double z) { this.x = x; this.y = y; this.z = z; }
+        public static Vector3d zero => new Vector3d(0, 0, 0);
     }
     
     public class Texture2D : Texture
@@ -45,6 +38,7 @@ namespace UnityEngine
     }
     
     public class Texture {}
+
     public class Sprite
     {
         public Texture2D texture => null;
@@ -80,7 +74,7 @@ namespace UnityEngine
         public float x, y, z;
         public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
         public static Vector3 Lerp(Vector3 a, Vector3 b, float t) => a;
-        public static float Distance(Vector3 a, Vector3 b) => 0.0f;
+        public static float Distance(Vector3 a, Vector3 b) => 0f;
         public static Vector3 operator *(Vector3 a, float d) => new Vector3(a.x * d, a.y * d, a.z * d);
         public static Vector3 operator -(Vector3 a, Vector3 b) => new Vector3(a.x - b.x, a.y - b.y, a.z - b.z);
         public static Vector3 operator +(Vector3 a, Vector3 b) => new Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
@@ -89,7 +83,7 @@ namespace UnityEngine
     public static class Mathf
     {
         public static float Min(float a, float b) => a;
-        public static int Min(int a, int b) => a;
+        public static int   Min(int a, int b)     => a;
     }
 
     public static class GUILayout
@@ -128,6 +122,8 @@ namespace UnityEngine
     }
 }
 
+// ── KSP stubs ────────────────────────────────────────────────────────────────
+
 public class KSPAddon : System.Attribute
 {
     public enum Startup { Flight }
@@ -135,6 +131,7 @@ public class KSPAddon : System.Attribute
 }
 
 public class ApplicationLauncherButton {}
+
 public class ApplicationLauncher
 {
     public static ApplicationLauncher Instance => null;
@@ -144,17 +141,14 @@ public class ApplicationLauncher
         System.Action onHover, System.Action onHoverOut,
         System.Action glEnable, System.Action glDisable,
         AppScenes scenes, UnityEngine.Texture texture) => null;
-        
     public void RemoveModApplication(ApplicationLauncherButton btn) {}
-    
     public enum AppScenes { FLIGHT }
 }
 
 public class GameEvents
 {
-    public static EventVoid onGUIApplicationLauncherReady = new EventVoid();
+    public static EventVoid onGUIApplicationLauncherReady    = new EventVoid();
     public static EventVoid onGUIApplicationLauncherDestroyed = new EventVoid();
-    
     public class EventVoid
     {
         public void Add(System.Action action) {}
@@ -170,7 +164,8 @@ public class GameDatabase
 
 public class Part
 {
-    public System.Collections.Generic.List<PartModule> Modules = new System.Collections.Generic.List<PartModule>();
+    public System.Collections.Generic.List<PartModule> Modules =
+        new System.Collections.Generic.List<PartModule>();
 }
 
 public class PartModule
@@ -186,19 +181,24 @@ public class Vessel
     public CelestialBody mainBody => null;
     public bool packed => false;
     public bool loaded => false;
-    public System.Collections.Generic.List<Part> parts = new System.Collections.Generic.List<Part>();
+    public System.Collections.Generic.List<Part> parts =
+        new System.Collections.Generic.List<Part>();
 }
 
 public class CelestialBody
 {
-    public UnityEngine.Vector3d GetLatitudeAndLongitude(UnityEngine.Vector3 position) => new UnityEngine.Vector3d();
-    public double GetAltitude(UnityEngine.Vector3 position) => 0.0;
+    // API réelle KSP : méthodes séparées (pas GetLatitudeAndLongitude)
+    public double GetLatitude(UnityEngine.Vector3 position)  => 0.0;
+    public double GetLongitude(UnityEngine.Vector3 position) => 0.0;
+    public double GetAltitude(UnityEngine.Vector3 position)  => 0.0;
 }
 
 public static class FlightGlobals
 {
     public static Vessel ActiveVessel => null;
-    public static System.Collections.Generic.List<Vessel> Vessels = new System.Collections.Generic.List<Vessel>();
+    public static System.Collections.Generic.List<Vessel> Vessels =
+        new System.Collections.Generic.List<Vessel>();
+    public static CelestialBody currentMainBody => null;
 }
 
 public class ScreenMessageStyle
@@ -218,10 +218,79 @@ public static class KSPUtil
 
 public class AssemblyLoader
 {
-    public static System.Collections.Generic.List<LoadedAssembly> loadedAssemblies = new System.Collections.Generic.List<LoadedAssembly>();
-    
+    public static System.Collections.Generic.List<LoadedAssembly> loadedAssemblies =
+        new System.Collections.Generic.List<LoadedAssembly>();
     public class LoadedAssembly
     {
         public System.Reflection.Assembly assembly => null;
+    }
+}
+
+// ── BDArmory stubs (BDArmory.Targeting) ──────────────────────────────────────
+// Ces stubs ne sont utilisés que si le code référençait directement des types BDArmory.
+// Notre code utilise uniquement la réflexion (AssemblyLoader + GetType + GetField),
+// donc ces stubs ne servent que de documentation et ne sont pas nécessaires à la compilation.
+
+namespace BDArmory.Targeting
+{
+    /// <summary>
+    /// Stub de GPSTargetInfo (struct dans BDArmory).
+    /// Constructeur réel : GPSTargetInfo(Vector3d coords, string name, Vessel vessel = null)
+    /// gpsCoordinates.x = latitude, .y = longitude, .z = altitude
+    /// </summary>
+    [System.Serializable]
+    public struct GPSTargetInfo
+    {
+        public UnityEngine.Vector3d gpsCoordinates; // x=lat, y=lon, z=alt
+        public string name;
+        public Vessel gpsVessel;
+
+        public GPSTargetInfo(UnityEngine.Vector3d coords, string n, Vessel vessel = null)
+        {
+            gpsCoordinates = coords;
+            name = n;
+            gpsVessel = vessel;
+        }
+    }
+
+    /// <summary>
+    /// Stub de BDATargetManager.
+    /// GPSTargetList est la liste statique publique dans laquelle on ajoute les cibles GPS.
+    /// </summary>
+    public static class BDATargetManager
+    {
+        public static System.Collections.Generic.List<GPSTargetInfo> GPSTargetList =
+            new System.Collections.Generic.List<GPSTargetInfo>();
+    }
+}
+
+namespace BDArmory.Modules
+{
+    /// <summary>
+    /// Stub minimal de VesselRadarData.
+    /// Le champ lockedTargets est une List&lt;TargetSignatureData&gt; publique (pas une méthode GetLockedTargets).
+    /// </summary>
+    public class VesselRadarData
+    {
+        public System.Collections.Generic.List<TargetSignatureData> lockedTargets =
+            new System.Collections.Generic.List<TargetSignatureData>();
+    }
+
+    /// <summary>
+    /// Stub de TargetSignatureData.
+    /// Le champ vessel est un champ public (Vessel).
+    /// </summary>
+    public class TargetSignatureData
+    {
+        public Vessel vessel = null;
+    }
+
+    /// <summary>
+    /// Stub minimal de MissileFire (WeaponManager).
+    /// vesselRadarData est un champ public.
+    /// </summary>
+    public class MissileFire : PartModule
+    {
+        public VesselRadarData vesselRadarData = null;
     }
 }

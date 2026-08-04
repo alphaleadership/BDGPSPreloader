@@ -27,6 +27,9 @@ namespace BDGPSPreloader
         private GameObject camHolder = null;
         private Rect camViewRect = new Rect(0.7f, 0.7f, 0.28f, 0.28f); // PIP Window bottom-right
 
+        // Scroll position – membre de classe pour ne pas être réinitialisé chaque frame
+        private Vector2 scrollPosition = Vector2.zero;
+
         // Coordinates database
         [Serializable]
         public class GPSCoordinate
@@ -170,8 +173,8 @@ namespace BDGPSPreloader
 
             // Saved Coordinates List
             GUILayout.Label("Coordonnées enregistrées :", GUI.skin.box);
-            Vector2 scroll = Vector2.zero;
-            scroll = GUILayout.BeginScrollView(scroll, GUILayout.Height(150));
+            // scrollPosition est un champ membre – la position est conservée entre les frames
+            scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.Height(150));
 
             GPSCoordinate toDelete = null;
             foreach (var coord in savedCoords)
@@ -206,71 +209,69 @@ namespace BDGPSPreloader
             try
             {
                 var bdAssembly = AssemblyLoader.loadedAssemblies.Find(a => a.assembly.GetName().Name == "BDArmory");
-                if (bdAssembly != null)
-                {
-                    // Recherche du Weapons Manager (MissileFire) actif sur le vaisseau actif
-                    Vessel activeVessel = FlightGlobals.ActiveVessel;
-                    if (activeVessel != null)
-                    {
-                        foreach (var part in activeVessel.parts)
-                        {
-                            foreach (var module in part.Modules)
-                            {
-                                if (module.GetType().Name == "MissileFire")
-                                {
-                                    // Récupération de vesselRadarData
-                                    var vrdField = module.GetType().GetField("vesselRadarData", BindingFlags.Public | BindingFlags.Instance);
-                                    if (vrdField != null)
-                                    {
-                                        object vrdInstance = vrdField.GetValue(module);
-                                        if (vrdInstance != null)
-                                        {
-                                            // Méthode GetLockedTargets() renvoie List<TargetSignatureData>
-                                            var getLockedTargetsMethod = vrdInstance.GetType().GetMethod("GetLockedTargets", BindingFlags.Public | BindingFlags.Instance);
-                                            if (getLockedTargetsMethod != null)
-                                            {
-                                                var targetList = getLockedTargetsMethod.Invoke(vrdInstance, null) as System.Collections.IEnumerable;
-                                                if (targetList != null)
-                                                {
-                                                    foreach (var targetSig in targetList)
-                                                    {
-                                                        // TargetSignatureData contient 'predictedPosition' (Vector3) et 'vessel' (Vessel) ou 'exists'
-                                                        var targetVesselField = targetSig.GetType().GetField("vessel", BindingFlags.Public | BindingFlags.Instance);
-                                                        if (targetVesselField != null)
-                                                        {
-                                                            Vessel radarLockedVessel = targetVesselField.GetValue(targetSig) as Vessel;
-                                                            if (radarLockedVessel != null)
-                                                            {
-                                                                // Convertir la position monde de la cible en coordonnées géographiques KSP
-                                                                Vector3d coords = activeVessel.mainBody.GetLatitudeAndLongitude(radarLockedVessel.transform.position);
-                                                                double lat = coords.x;
-                                                                double lon = coords.y;
-                                                                double alt = activeVessel.mainBody.GetAltitude(radarLockedVessel.transform.position);
-
-                                                                newName = radarLockedVessel.vesselName;
-                                                                newLat = lat.ToString("F6");
-                                                                newLon = lon.ToString("F6");
-                                                                newAlt = alt.ToString("F0");
-
-                                                                ScreenMessages.PostScreenMessage($"Cible Radar '{newName}' importée !", 4f, ScreenMessageStyle.UPPER_CENTER);
-                                                                return;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        ScreenMessages.PostScreenMessage("Aucun verrouillage radar trouvé sur le vaisseau actif.", 4f, ScreenMessageStyle.UPPER_CENTER);
-                    }
-                }
-                else
+                if (bdAssembly == null)
                 {
                     ScreenMessages.PostScreenMessage("BDArmory non détecté !", 4f, ScreenMessageStyle.UPPER_CENTER);
+                    return;
                 }
+
+                Vessel activeVessel = FlightGlobals.ActiveVessel;
+                if (activeVessel == null) return;
+
+                foreach (var part in activeVessel.parts)
+                {
+                    foreach (var module in part.Modules)
+                    {
+                        if (module.GetType().Name != "MissileFire") continue;
+
+                        // vesselRadarData : champ public de MissileFire (BDArmory.Modules.MissileFire)
+                        var vrdField = module.GetType().GetField("vesselRadarData",
+                            BindingFlags.Public | BindingFlags.Instance);
+                        if (vrdField == null) continue;
+
+                        object vrd = vrdField.GetValue(module);
+                        if (vrd == null) continue;
+
+                        // VesselRadarData.lockedTargets : List<TargetSignatureData> (champ public)
+                        // Pas de méthode GetLockedTargets() – c'est directement un champ.
+                        var lockedField = vrd.GetType().GetField("lockedTargets",
+                            BindingFlags.Public | BindingFlags.Instance);
+                        if (lockedField == null) continue;
+
+                        var lockedList = lockedField.GetValue(vrd) as System.Collections.IEnumerable;
+                        if (lockedList == null) continue;
+
+                        foreach (var targetSig in lockedList)
+                        {
+                            // TargetSignatureData.vessel est un champ public
+                            var targetVesselField = targetSig.GetType().GetField("vessel",
+                                BindingFlags.Public | BindingFlags.Instance);
+                            if (targetVesselField == null) continue;
+
+                            Vessel lockedVessel = targetVesselField.GetValue(targetSig) as Vessel;
+                            if (lockedVessel == null) continue;
+
+                            // CelestialBody.GetLatitude / GetLongitude / GetAltitude
+                            // (GetLatitudeAndLongitude n'existe pas dans KSP)
+                            CelestialBody body = activeVessel.mainBody;
+                            double lat = body.GetLatitude(lockedVessel.transform.position);
+                            double lon = body.GetLongitude(lockedVessel.transform.position);
+                            double alt = body.GetAltitude(lockedVessel.transform.position);
+
+                            newName = lockedVessel.vesselName;
+                            newLat  = lat.ToString("F6");
+                            newLon  = lon.ToString("F6");
+                            newAlt  = alt.ToString("F0");
+
+                            ScreenMessages.PostScreenMessage(
+                                $"Cible Radar '{newName}' importée !", 4f, ScreenMessageStyle.UPPER_CENTER);
+                            return;
+                        }
+                    }
+                }
+
+                ScreenMessages.PostScreenMessage(
+                    "Aucun verrouillage radar trouvé sur le vaisseau actif.", 4f, ScreenMessageStyle.UPPER_CENTER);
             }
             catch (Exception ex)
             {
@@ -282,11 +283,9 @@ namespace BDGPSPreloader
         {
             if (targetMissile == null)
             {
-                // Trouver le premier missile (ou bombe) BDArmory en vol tiré depuis ou actif dans la zone
                 foreach (Vessel v in FlightGlobals.Vessels)
                 {
                     if (v.packed || !v.loaded) continue;
-                    // BDArmory met les missiles en vol dans une catégorie spécifique ou via des modules comme MissileBase/MissileGuidance
                     foreach (Part p in v.parts)
                     {
                         foreach (PartModule pm in p.Modules)
@@ -294,7 +293,8 @@ namespace BDGPSPreloader
                             if (pm.GetType().Name.Contains("Missile") || pm.GetType().Name.Contains("Bomb"))
                             {
                                 targetMissile = v;
-                                ScreenMessages.PostScreenMessage("Suivi du missile détecté actif !", 3f, ScreenMessageStyle.UPPER_CENTER);
+                                ScreenMessages.PostScreenMessage(
+                                    "Suivi du missile détecté actif !", 3f, ScreenMessageStyle.UPPER_CENTER);
                                 break;
                             }
                         }
@@ -306,18 +306,18 @@ namespace BDGPSPreloader
 
             if (targetMissile != null)
             {
-                // Si la caméra n'existe pas, la créer
                 if (impactCamera == null)
                 {
                     camHolder = new GameObject("BDGPS_ImpactCamHolder");
                     impactCamera = camHolder.AddComponent<Camera>();
                     impactCamera.rect = camViewRect;
-                    impactCamera.depth = 99; // Au-dessus de la caméra principale
+                    impactCamera.depth = 99;
                     impactCamera.fieldOfView = 60;
                 }
 
-                // Positionner la caméra légèrement derrière et au-dessus du missile pour voir l'impact à venir
-                Vector3 targetPosition = targetMissile.transform.position - (targetMissile.transform.forward * 12) + (targetMissile.transform.up * 4);
+                Vector3 targetPosition = targetMissile.transform.position
+                    - (targetMissile.transform.forward * 12)
+                    + (targetMissile.transform.up * 4);
                 camHolder.transform.position = Vector3.Lerp(camHolder.transform.position, targetPosition, 0.1f);
                 camHolder.transform.LookAt(targetMissile.transform.position + (targetMissile.transform.forward * 5));
             }
@@ -329,16 +329,8 @@ namespace BDGPSPreloader
 
         private void DestroyCamera()
         {
-            if (impactCamera != null)
-            {
-                Destroy(impactCamera);
-                impactCamera = null;
-            }
-            if (camHolder != null)
-            {
-                Destroy(camHolder);
-                camHolder = null;
-            }
+            if (impactCamera != null) { Destroy(impactCamera); impactCamera = null; }
+            if (camHolder != null)    { Destroy(camHolder);    camHolder = null; }
             targetMissile = null;
         }
 
@@ -347,48 +339,93 @@ namespace BDGPSPreloader
             try
             {
                 var bdAssembly = AssemblyLoader.loadedAssemblies.Find(a => a.assembly.GetName().Name == "BDArmory");
-                if (bdAssembly != null)
+                if (bdAssembly == null)
                 {
-                    Type targetManagerType = bdAssembly.assembly.GetType("BDArmory.Modules.BDATargetManager");
-                    if (targetManagerType != null)
+                    ScreenMessages.PostScreenMessage(
+                        "BDArmory introuvable ! Vérifiez qu'il est installé.", 5f, ScreenMessageStyle.UPPER_CENTER);
+                    return;
+                }
+
+                // Namespace correct : BDArmory.Targeting (pas BDArmory.Modules)
+                Type targetManagerType = bdAssembly.assembly.GetType("BDArmory.Targeting.BDATargetManager");
+                if (targetManagerType == null)
+                {
+                    ScreenMessages.PostScreenMessage(
+                        "Erreur : BDATargetManager introuvable dans BDArmory.", 5f, ScreenMessageStyle.UPPER_CENTER);
+                    return;
+                }
+
+                Type gpsTargetInfoType = bdAssembly.assembly.GetType("BDArmory.Targeting.GPSTargetInfo");
+                if (gpsTargetInfoType == null)
+                {
+                    ScreenMessages.PostScreenMessage(
+                        "Erreur : GPSTargetInfo introuvable dans BDArmory.", 5f, ScreenMessageStyle.UPPER_CENTER);
+                    return;
+                }
+
+                // GPSTargetInfo(Vector3d coords, string name, Vessel vessel = null)
+                // gpsCoordinates : x = latitude, y = longitude, z = altitude
+                // (ordre vérifié dans le source BDArmory/Targeting/GPSTargetInfo.cs)
+                var gpsCoords = new Vector3d(coord.Latitude, coord.Longitude, coord.Altitude);
+
+                var constructor = gpsTargetInfoType.GetConstructor(
+                    new Type[] { typeof(Vector3d), typeof(string) });
+                if (constructor == null)
+                {
+                    // Essai avec le constructeur à 3 paramètres (Vessel optionnel)
+                    constructor = gpsTargetInfoType.GetConstructor(
+                        new Type[] { typeof(Vector3d), typeof(string), typeof(Vessel) });
+                }
+
+                if (constructor == null)
+                {
+                    ScreenMessages.PostScreenMessage(
+                        "Erreur : Constructeur GPSTargetInfo introuvable.", 4f, ScreenMessageStyle.UPPER_CENTER);
+                    return;
+                }
+
+                object gpsInfo = (constructor.GetParameters().Length == 3)
+                    ? constructor.Invoke(new object[] { gpsCoords, coord.Name, null })
+                    : constructor.Invoke(new object[] { gpsCoords, coord.Name });
+
+                // BDArmory stocke les cibles GPS dans la liste statique BDATargetManager.GPSTargetList
+                // Il n'y a pas de méthode AddGPSTarget(GPSTargetInfo) – on ajoute directement à la liste.
+                var gpsListField = targetManagerType.GetField("GPSTargetList",
+                    BindingFlags.Public | BindingFlags.Static);
+                if (gpsListField == null)
+                {
+                    // Fallback : certaines versions exposent une méthode AddGPSTarget
+                    var addMethod = targetManagerType.GetMethod("AddGPSTarget",
+                        BindingFlags.Public | BindingFlags.Static);
+                    if (addMethod != null)
                     {
-                        Type gpsTargetInfoType = bdAssembly.assembly.GetType("BDArmory.Modules.GPSTargetInfo");
-                        if (gpsTargetInfoType != null)
-                        {
-                            object coordsVector = new Vector3d(coord.Longitude, coord.Latitude, coord.Altitude); // x=lon, y=lat, z=alt
-                            
-                            var constructor = gpsTargetInfoType.GetConstructor(new Type[] { typeof(Vector3d), typeof(string) });
-                            if (constructor != null)
-                            {
-                                object gpsTargetInfoInstance = constructor.Invoke(new object[] { coordsVector, coord.Name });
-                                
-                                var addMethod = targetManagerType.GetMethod("AddGPSTarget", new Type[] { gpsTargetInfoType });
-                                if (addMethod != null)
-                                {
-                                    addMethod.Invoke(null, new object[] { gpsTargetInfoInstance });
-                                    ScreenMessages.PostScreenMessage($"GPS '{coord.Name}' injecté dans BDArmory !", 4f, ScreenMessageStyle.UPPER_CENTER);
-                                }
-                                else
-                                {
-                                    ScreenMessages.PostScreenMessage("Erreur : Impossible de trouver la méthode AddGPSTarget dans BDArmory.", 4f, ScreenMessageStyle.UPPER_CENTER);
-                                }
-                            }
-                            else
-                            {
-                                ScreenMessages.PostScreenMessage("Erreur : Impossible de trouver le constructeur de GPSTargetInfo.", 4f, ScreenMessageStyle.UPPER_CENTER);
-                            }
-                        }
+                        addMethod.Invoke(null, new object[] { gpsInfo });
+                        ScreenMessages.PostScreenMessage(
+                            $"GPS '{coord.Name}' injecté dans BDArmory !", 4f, ScreenMessageStyle.UPPER_CENTER);
+                        return;
                     }
+                    ScreenMessages.PostScreenMessage(
+                        "Erreur : GPSTargetList introuvable dans BDATargetManager.", 4f, ScreenMessageStyle.UPPER_CENTER);
+                    return;
                 }
-                else
+
+                var gpsList = gpsListField.GetValue(null) as System.Collections.IList;
+                if (gpsList == null)
                 {
-                    ScreenMessages.PostScreenMessage("BDArmory introuvable ! Vérifiez qu'il est installé.", 5f, ScreenMessageStyle.UPPER_CENTER);
+                    ScreenMessages.PostScreenMessage(
+                        "Erreur : GPSTargetList est null.", 4f, ScreenMessageStyle.UPPER_CENTER);
+                    return;
                 }
+
+                gpsList.Add(gpsInfo);
+                ScreenMessages.PostScreenMessage(
+                    $"GPS '{coord.Name}' injecté dans BDArmory !", 4f, ScreenMessageStyle.UPPER_CENTER);
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[BDGPSPreloader] Exception lors de l'injection GPS : {ex.Message}");
-                ScreenMessages.PostScreenMessage("Erreur d'injection GPS. Voir le journal.", 5f, ScreenMessageStyle.UPPER_CENTER);
+                ScreenMessages.PostScreenMessage(
+                    "Erreur d'injection GPS. Voir le journal.", 5f, ScreenMessageStyle.UPPER_CENTER);
             }
         }
 
@@ -397,10 +434,7 @@ namespace BDGPSPreloader
             try
             {
                 string dir = Path.GetDirectoryName(savePath);
-                if (!Directory.Exists(dir))
-                {
-                    Directory.CreateDirectory(dir);
-                }
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
                 XmlSerializer serializer = new XmlSerializer(typeof(List<GPSCoordinate>));
                 using (TextWriter writer = new StreamWriter(savePath))

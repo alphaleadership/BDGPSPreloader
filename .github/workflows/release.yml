@@ -17,12 +17,8 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '6.0.x' # Version du SDK pour compiler le projet
+        dotnet-version: '8.0.x'
 
-    # BDArmory et KSP DLLs sont généralement nécessaires pour compiler.
-    # Dans ce cas, nous téléchargeons des versions publiques légères ou fictives (stubs)
-    # ou nous utilisons les références du dépôt si elles y sont poussées.
-    # Pour ce workflow générique, nous créons la structure de build.
     - name: Restore dependencies
       run: dotnet restore BDGPSPreloader.csproj
 
@@ -34,9 +30,14 @@ jobs:
         mkdir -p release/GameData/BDGPSPreloader/Plugins
         mkdir -p release/GameData/BDGPSPreloader/Parts
         mkdir -p release/GameData/BDGPSPreloader/MMPatches
+        # DLL compilée
         cp bin/Release/net472/BDGPSPreloader.dll release/GameData/BDGPSPreloader/Plugins/
+        # Fichier .version pour KSP AVC / CKAN
+        cp GameData/BDGPSPreloader/BDGPSPreloader.version release/GameData/BDGPSPreloader/
+        # Parts et patches MM
         cp -r GameData/BDGPSPreloader/Parts/* release/GameData/BDGPSPreloader/Parts/
         cp -r GameData/BDGPSPreloader/MMPatches/* release/GameData/BDGPSPreloader/MMPatches/
+        # Création du zip
         cd release
         zip -r ../BDGPSPreloader.zip GameData/
 
@@ -44,5 +45,6 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: BDGPSPreloader.zip
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
