@@ -32,9 +32,9 @@ jobs:
     - name: Create Release Package
       run: |
         mkdir -p release/GameData/BDGPSPreloader/Plugins
+        mkdir -p release/GameData/BDGPSPreloader/Parts
         cp bin/Release/net472/BDGPSPreloader.dll release/GameData/BDGPSPreloader/Plugins/
-        # Copie de l'icône si présente
-        # cp -r Textures release/GameData/BDGPSPreloader/
+        cp -r GameData/BDGPSPreloader/Parts/* release/GameData/BDGPSPreloader/Parts/
         cd release
         zip -r ../BDGPSPreloader.zip GameData/
 
