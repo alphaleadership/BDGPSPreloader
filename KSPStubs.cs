@@ -9,6 +9,11 @@ namespace UnityEngine
         public static void Destroy(object obj) {}
     }
     
+    public class Time
+    {
+        public static float time => 0f;
+    }
+
     public struct Rect
     {
         public float x, y, width, height;
@@ -30,6 +35,7 @@ namespace UnityEngine
         public double x, y, z;
         public Vector3d(double x, double y, double z) { this.x = x; this.y = y; this.z = z; }
         public static Vector3d zero => new Vector3d(0, 0, 0);
+        public static explicit operator Vector3(Vector3d v) => new Vector3((float)v.x, (float)v.y, (float)v.z);
     }
     
     public class Texture2D : Texture
@@ -89,6 +95,7 @@ namespace UnityEngine
     public static class GUILayout
     {
         public static void BeginVertical() {}
+        public static void BeginVertical(object style, params object[] options) {}
         public static void EndVertical() {}
         public static void BeginHorizontal() {}
         public static void EndHorizontal() {}
@@ -114,6 +121,7 @@ namespace UnityEngine
     public class GUISkin
     {
         public object box => null;
+        public object button => null;
     }
     
     public static class Debug
@@ -162,8 +170,15 @@ public class GameDatabase
     public UnityEngine.Texture2D GetTexture(string name, bool b) => null;
 }
 
+public class AvailablePart
+{
+    public string name = "";
+    public string title = "";
+}
+
 public class Part
 {
+    public AvailablePart partInfo = null;
     public System.Collections.Generic.List<PartModule> Modules =
         new System.Collections.Generic.List<PartModule>();
 }
@@ -176,6 +191,7 @@ public class PartModule
 
 public class Vessel
 {
+    public System.Guid id;
     public string vesselName => "";
     public UnityEngine.Transform transform => null;
     public CelestialBody mainBody => null;
@@ -191,6 +207,7 @@ public class CelestialBody
     public double GetLatitude(UnityEngine.Vector3 position)  => 0.0;
     public double GetLongitude(UnityEngine.Vector3 position) => 0.0;
     public double GetAltitude(UnityEngine.Vector3 position)  => 0.0;
+    public UnityEngine.Vector3d GetWorldSurfacePosition(double lat, double lon, double alt) => new UnityEngine.Vector3d(0, 0, 0);
 }
 
 public static class FlightGlobals
